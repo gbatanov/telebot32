@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(telebot32 LANGUAGES CXX VERSION 0.7.34)
+project(telebot32 LANGUAGES CXX VERSION 0.7.35)
 
 message(STATUS "${PROJECT_NAME}: ${PROJECT_VERSION}")
 message(STATUS ${CMAKE_BUILD_TYPE})
