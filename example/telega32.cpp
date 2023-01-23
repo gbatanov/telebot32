@@ -1,17 +1,5 @@
 // telega32
-// GsbTest - тестовый бот
-// TestGsbBot
-/* @example
-Для отправки сообщения достаточно ID клиента и самого текста.
-{
-    Message msg;
-    msg.chat.id = 836487770;
-    msg.text = "Проверка вшивости\n";
-    if (tlg32->send_message(msg))
-        DBGLOG("Message sent to queue\n");
-}
-Для повышения уровня безопасности следует проверять, что CHAT ID входят в список доступных.
-*/
+
 #include <thread>
 #include <string>
 #include <atomic>
@@ -77,7 +65,7 @@ static int cmd_func()
     char c;
     struct timeval tv;
 
-    while (flag)
+    while (flag.load())
     {
         tv.tv_sec = (long)1;
         tv.tv_usec = (long)0;
@@ -85,7 +73,7 @@ static int cmd_func()
         time_t start = time(NULL);
         time_t waitTime = 1;
 
-        while (flag && (time(NULL) < start + waitTime))
+        while (flag.load() && (time(NULL) < start + waitTime))
         {
             fd_set readfds;
             FD_ZERO(&readfds);
@@ -106,7 +94,7 @@ static int cmd_func()
         {
         case 'Q':
         case 'q':
-            flag = false;
+            flag.store(false);
             break;
 
         case '1':
