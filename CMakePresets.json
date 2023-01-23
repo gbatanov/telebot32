@@ -1,0 +1,45 @@
+{
+    "version": 2,
+    "configurePresets": [
+        {
+            "name": "Debug",
+            "displayName": "Debug",
+            "description": "Build and install directory",
+            "generator": "Unix Makefiles",
+            "binaryDir": "${sourceDir}/build",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_TOOLCHAIN_FILE": "",
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/build",
+                "BOT_NAME": "TestGsbBot",
+                "TEST":"ON"
+            }
+        },
+        {
+            "name": "Release",
+            "displayName": "Release",
+            "description": "Build and install directory",
+            "generator": "Unix Makefiles",
+            "binaryDir": "${sourceDir}/build",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_TOOLCHAIN_FILE": "",
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/build"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "Release_preset",
+            "description": "",
+            "displayName": "Release_preset",
+            "configurePreset": "Release"
+        },
+        {
+            "name": "Debug_preset",
+            "description": "",
+            "displayName": "Debug_preset",
+            "configurePreset": "Debug"
+        }
+    ]
+}
