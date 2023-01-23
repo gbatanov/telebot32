@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(telebot32 LANGUAGES CXX VERSION 0.7.32)
+project(telebot32 LANGUAGES CXX VERSION 0.7.33)
 
 message(STATUS "${PROJECT_NAME}: ${PROJECT_VERSION}")
 message(STATUS ${CMAKE_BUILD_TYPE})
@@ -9,11 +9,11 @@ set(MAIN_PROJECT OFF)
 if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     set(PREFIX /usr/local)
     set(MAIN_PROJECT ON)
-    set(USEUTILS "#define USE_UTILS 1")
 else()
-    set(USEUTILS "")
     set(PREFIX "")
 endif()
+
+set(USEUTILS "#define USE_UTILS 1")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")

@@ -24,8 +24,6 @@ using gsb_utils = gsbutils::SString;
 #define BOT_API_URL "https://api.telegram.org"
 #define BOT_URL_SIZE 1024
 
-
-
 // из cUrl приходит в contents, сохраняем ответ в пользовательском буфере userp
 static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
 {
@@ -86,7 +84,7 @@ bool Tlg32::query_to_api(std::string method, std::string *response, Tlg32_core_m
     {
         apiUrl = apiUrl + "/bot" + token_ + "/" + method;
 
-//        INFOLOG("%s \n", apiUrl.c_str());
+        //        INFOLOG("%s \n", apiUrl.c_str());
 
         curl_global_init(CURL_GLOBAL_DEFAULT);
         curl = curl_easy_init();
@@ -214,7 +212,7 @@ bool Tlg32::get_updates(std::vector<Message> *msgIn)
 
     try
     {
-//        DBGLOG("getUpdates body: %s \n", content.c_str());
+        //        DBGLOG("getUpdates body: %s \n", content.c_str());
         return parseUpdates(content, msgIn);
     }
     catch (std::exception &e)
@@ -242,10 +240,10 @@ bool Tlg32::send_message(std::string txt)
         return false;
     if (txt.size() > 2048)
         return false;
-    //   for (auto &vid : valid_ids_)
+    for (auto &vid : valid_ids_)
     {
         Message msg;
-        msg.chat.id = valid_ids_.at(0);
+        msg.chat.id = vid;
         msg.text = txt;
         std::lock_guard<std::mutex> lg(queueMtx_);
         msgQueue_.push(msg);
@@ -364,8 +362,6 @@ bool Tlg32::parseMe(std::string content)
     return true;
 }
 // парсинг поля result в ответе getUpdates
-// {"update_id":791737526,"message":{"message_id":65,"from":{"id":836487770,"is_bot":false,"first_name":"Georgii","last_name":"Batanov","language_code":"ru"},"chat":{"id":836487770,"first_name":"Georgii","last_name":"Batanov","type":"private"},"date":1672082634,"text":"test8"}},
-// {"update_id":791737527,"message":{"message_id":66,"from":{"id":836487770,"is_bot":false,"first_name":"Georgii","last_name":"Batanov","language_code":"ru"},"chat":{"id":836487770,"first_name":"Georgii","last_name":"Batanov","type":"private"},"date":1672082654,"text":"test9"}}]}
 bool Tlg32::parseUpdates(std::string content, std::vector<Message> *msgIn)
 {
     if (!content.starts_with("{\"ok\":true,\"result\""))
@@ -404,13 +400,12 @@ bool Tlg32::parseUpdates(std::string content, std::vector<Message> *msgIn)
     return false;
 }
 
-//{"update_id":791737527,"message":{"message_id":66,"from":{"id":836487770,"is_bot":false,"first_name":"Georgii","last_name":"Batanov","language_code":"ru"},"chat":{"id":836487770,"first_name":"Georgii","last_name":"Batanov","type":"private"},"date":1672082654,"text":"test9"}}
 bool Tlg32::parseOneUpdate(std::string content, std::vector<Message> *msgIn)
 {
     Message msg{};
     //   DBGLOG("\n %s \n", content.c_str());
     std::string para = gsb_utils::remove_after(content, ","); // "update_id":ID
-    content =gsb_utils::remove_before(content, ",");         // оставшаяся часть строки ответа - message
+    content = gsb_utils::remove_before(content, ",");         // оставшаяся часть строки ответа - message
 
     para = gsb_utils::remove_before(para, ":");
     uint64_t lastUpdateId = (uint64_t)std::stoull(para.c_str());
@@ -420,7 +415,7 @@ bool Tlg32::parseOneUpdate(std::string content, std::vector<Message> *msgIn)
     content = gsb_utils::remove_before(content, "\"message\":{\"message_id\":");
     para = gsb_utils::remove_after(content, ",");
     msg.messageId = (uint64_t)std::stoull(para.c_str());
-    
+
     content = gsb_utils::remove_before(content, "\"from\":{"); // начинается с from "id":836487770,"is_bot":false,"first_name":"Georgii","last_name":"Batanov","language_code":"ru"},"chat":{"id":836487770,"first_name":"Georgii","last_name":"Batanov","type":"private"},"date":1672082654,"text":"test9"}}
     para = gsb_utils::remove_before(content, "date\":");       // 1672082654,"text":"test9"}}  // начинается с date
     std::string txt = gsb_utils::remove_before(para, "\"text\":");
