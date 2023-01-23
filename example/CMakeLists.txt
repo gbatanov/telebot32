@@ -13,7 +13,7 @@ configure_file(../botname.h.in ../../example/botname.h)
 
 ADD_EXECUTABLE(${PROJECT_NAME} telega32.cpp)
 
-TARGET_LINK_LIBRARIES(${PROJECT_NAME}  telebot32)
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} telebot32${SUFF})
 target_include_directories(${PROJECT_NAME} PUBLIC tlg32)
 
 if(${MAIN_PROJECT})
