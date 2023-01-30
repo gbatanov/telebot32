@@ -94,16 +94,4 @@ private:
 };
 
 
-#ifdef USE_UTILS
-#ifdef DEBUG
-#define ERRLOG(fmt, args...) fprintf(stderr, "[ERROR][%s:%d]" fmt, __func__, __LINE__, ##args)
-#define DBGLOG(fmt, args...) fprintf(stdout, "[DEBUG][%s:%d]" fmt, __func__, __LINE__, ##args)
-#define INFOLOG(fmt, args...) fprintf(stdout, "[Info]" fmt, ##args)
-#else
-#define ERRLOG(fmt, args...) syslog(1, fmt, ##args)
-#define INFOLOG(fmt, args...) fprintf(stdout, "[Info]" fmt, ##args)
-#define DBGLOG(x, ...)
-#endif
-#endif
-
 #endif
