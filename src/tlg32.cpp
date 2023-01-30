@@ -13,12 +13,10 @@
 
 #include "version.h"
 
-#ifdef USE_UTILS
-#include "gsbutils.h"
-#else
-#include "../../gsb_utils/gsbutils.h"
+
+#include "../gsb_utils/gsbutils.h"
 using gsb_utils = gsbutils::SString;
-#endif
+
 #include "tlg32.h"
 
 #define BOT_API_URL "https://api.telegram.org"

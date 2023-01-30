@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(telebot32 LANGUAGES CXX VERSION 0.7.35)
+project(telebot32 LANGUAGES CXX VERSION 0.8.36)
 
 message(STATUS "${PROJECT_NAME}: ${PROJECT_VERSION}")
 message(STATUS ${CMAKE_BUILD_TYPE})
@@ -13,8 +13,6 @@ else()
     set(PREFIX "")
 endif()
 
-set(USEUTILS "#define USE_UTILS 1")
-
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
     set(SUFF "")
@@ -26,7 +24,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(SUFF "d")
 endif()
 
-
+add_subdirectory(gsb_utils)
 add_subdirectory(src)
 
 if(${MAIN_PROJECT})
