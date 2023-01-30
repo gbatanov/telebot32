@@ -13,7 +13,6 @@
 
 #include "version.h"
 
-
 #include "../gsb_utils/gsbutils.h"
 using gsb_utils = gsbutils::SString;
 
