@@ -1,0 +1,13 @@
+prefix=@PREFIX@
+exec_prefix=@PREFIX@/bin
+libdir=@PREFIX@/lib
+includedir=@PREFIX@/include
+
+Name: @PROJECT_NAME@
+Description: @PROJECT_DESCRIPTION@
+Version: @VERSION@
+Requires: libcurl 
+Libs:  -L${libdir} -l@PROJECT_NAME@
+Libs.private: -lgsbutils
+Cflags: -I${includedir}
+

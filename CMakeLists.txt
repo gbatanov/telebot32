@@ -6,11 +6,9 @@ message(STATUS ${CMAKE_BUILD_TYPE})
 
 # check main project or not
 set(MAIN_PROJECT OFF)
+set(PREFIX "")
 if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
-    set(PREFIX /usr/local)
     set(MAIN_PROJECT ON)
-else()
-    set(PREFIX "")
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
@@ -21,14 +19,22 @@ endif()
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDebug=1 -DDEBUG=1")
     set(DEBUG_STRING "#define DEBUG 1")
-    set(SUFF "d")
 endif()
 
-add_subdirectory(gsb_utils)
 add_subdirectory(src)
 
 if(${MAIN_PROJECT})
+  set(PREFIX /usr/local)
+  set(VERSION ${PROJECT_VERSION})
+  set(PROJECT_DESCRIPTION "Статическая библиотека телеграм-бота")
+
   if (TEST)
     add_subdirectory(example)
   endif()
+
+  install(TARGETS ${PROJECT_NAME} DESTINATION /usr/local/lib)
+  install(FILES src/tlg32.h DESTINATION /usr/local/include/${PROJECT_NAME})
+  configure_file(${PROJECT_NAME}.pc.in ${PROJECT_NAME}.pc @ONLY)
+  install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc DESTINATION ${PREFIX}/lib/pkgconfig)
+
 endif()

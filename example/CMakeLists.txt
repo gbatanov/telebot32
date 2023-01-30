@@ -13,8 +13,8 @@ configure_file(../botname.h.in ../../example/botname.h)
 
 ADD_EXECUTABLE(${PROJECT_NAME} telega32.cpp)
 
-TARGET_LINK_LIBRARIES(${PROJECT_NAME} telebot32${SUFF})
-target_include_directories(${PROJECT_NAME} PUBLIC tlg32)
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} telebot32 gsbutils)
+target_include_directories(${PROJECT_NAME} PUBLIC tlg32 /usr/local/include)
 
 if(${MAIN_PROJECT})
   install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION /usr/local/bin)
