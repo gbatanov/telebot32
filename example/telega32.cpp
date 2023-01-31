@@ -10,9 +10,11 @@
 
 #include "../src/version.h"
 #include "botname.h"
+#include <gsbutils/gsbutils.h>
 #include "../src/tlg32.h"
 
-std::atomic<bool> flag{true};
+
+std::atomic<bool> Flag{true};
 std::unique_ptr<Tlg32> tlg32;
 
 // forward declarations
@@ -28,7 +30,7 @@ int main(int argc, char *argv[])
     if (!tlg32->run(&handle))
         exit(1);
     cmd_func();
-    flag.store(false);
+    Flag.store(false);
     return 0;
 }
 
@@ -36,7 +38,7 @@ int main(int argc, char *argv[])
 // Указатель на функцию передается в класс Tlg32
 void handle(Message msg)
 {
-    if (flag.load() && !msg.text.empty())
+    if (Flag.load() && !msg.text.empty())
     {
         Message answer{};
         answer.chat.id = msg.from.id;
@@ -65,7 +67,7 @@ static int cmd_func()
     char c;
     struct timeval tv;
 
-    while (flag.load())
+    while (Flag.load())
     {
         tv.tv_sec = (long)1;
         tv.tv_usec = (long)0;
@@ -73,7 +75,7 @@ static int cmd_func()
         time_t start = time(NULL);
         time_t waitTime = 1;
 
-        while (flag.load() && (time(NULL) < start + waitTime))
+        while (Flag.load() && (time(NULL) < start + waitTime))
         {
             fd_set readfds;
             FD_ZERO(&readfds);
@@ -94,7 +96,7 @@ static int cmd_func()
         {
         case 'Q':
         case 'q':
-            flag.store(false);
+            Flag.store(false);
             break;
 
         case '1':

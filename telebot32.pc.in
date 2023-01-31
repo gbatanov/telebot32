@@ -1,0 +1,12 @@
+prefix=@PREFIX@
+exec_prefix=@PREFIX@/bin
+libdir=@PREFIX@/lib
+includedir=@PREFIX@/include
+
+Name: @PROJECT_NAME@
+Description: @PROJECT_DESCRIPTION@
+Version: @VERSION@
+Requires: libcurl gsbutils
+Libs:  -L${libdir} -l@PROJECT_NAME@ 
+Cflags: -I${includedir}
+
