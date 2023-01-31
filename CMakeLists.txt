@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(telebot32 LANGUAGES CXX VERSION 0.8.45)
+project(telebot32 LANGUAGES CXX VERSION 0.8.47)
 
 message(STATUS "${PROJECT_NAME}: ${PROJECT_VERSION}")
 message(STATUS ${CMAKE_BUILD_TYPE})
@@ -22,8 +22,12 @@ endif()
 
 add_subdirectory(src)
 
-if(${MAIN_PROJECT})
-  set(PREFIX /usr/local)
+
+set(PREFIX /usr/local)
+if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
+   set(PREFIX /opt/local)
+endif()
+
   set(VERSION ${PROJECT_VERSION})
   set(PROJECT_DESCRIPTION "Библиотека телеграм-бота")
 
@@ -48,8 +52,8 @@ if(${MAIN_PROJECT})
     add_subdirectory(example)
   endif()
 
-  install(TARGETS ${PROJECT_NAME} DESTINATION /usr/local/lib)
-  install(FILES src/tlg32.h DESTINATION /usr/local/include/${PROJECT_NAME})
+  install(TARGETS ${PROJECT_NAME} DESTINATION ${LIB_INSTALL_DIR})
+  install(FILES src/tlg32.h DESTINATION ${INCLUDE_INSTALL_DIR}${PROJECT_NAME})
 
   install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
       ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
@@ -58,4 +62,4 @@ if(${MAIN_PROJECT})
   configure_file(${PROJECT_NAME}.pc.in ${PROJECT_NAME}.pc @ONLY)
   install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc DESTINATION ${PREFIX}/lib/pkgconfig)
 
-endif()
+
