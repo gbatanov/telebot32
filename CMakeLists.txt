@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(telebot32 LANGUAGES CXX VERSION 0.8.37)
+project(telebot32 LANGUAGES CXX VERSION 0.8.45)
 
 message(STATUS "${PROJECT_NAME}: ${PROJECT_VERSION}")
 message(STATUS ${CMAKE_BUILD_TYPE})
@@ -13,7 +13,6 @@ endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
-    set(SUFF "")
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -26,7 +25,24 @@ add_subdirectory(src)
 if(${MAIN_PROJECT})
   set(PREFIX /usr/local)
   set(VERSION ${PROJECT_VERSION})
-  set(PROJECT_DESCRIPTION "Статическая библиотека телеграм-бота")
+  set(PROJECT_DESCRIPTION "Библиотека телеграм-бота")
+
+  set(INCLUDE_INSTALL_DIR ${PREFIX}/include/ )
+  set(LIB_INSTALL_DIR ${PREFIX}/lib/  )
+  set(SYSCONFIG_INSTALL_DIR "" )
+
+  include(CMakePackageConfigHelpers)
+  configure_package_config_file(${PROJECT_NAME}Config.cmake.in
+      ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+      INSTALL_DESTINATION ${LIB_INSTALL_DIR}/cmake/${PROJECT_NAME}
+      PATH_VARS INCLUDE_INSTALL_DIR 
+      SYSCONFIG_INSTALL_DIR
+      )
+  write_basic_package_version_file(
+      ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+      VERSION ${VERSION}
+      COMPATIBILITY SameMajorVersion )  
+
 
   if (TEST)
     add_subdirectory(example)
@@ -34,6 +50,11 @@ if(${MAIN_PROJECT})
 
   install(TARGETS ${PROJECT_NAME} DESTINATION /usr/local/lib)
   install(FILES src/tlg32.h DESTINATION /usr/local/include/${PROJECT_NAME})
+
+  install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+      ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+      DESTINATION ${LIB_INSTALL_DIR}/cmake/${PROJECT_NAME}) 
+
   configure_file(${PROJECT_NAME}.pc.in ${PROJECT_NAME}.pc @ONLY)
   install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc DESTINATION ${PREFIX}/lib/pkgconfig)
 

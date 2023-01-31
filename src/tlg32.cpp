@@ -13,7 +13,7 @@
 
 #include "version.h"
 
-#include "../gsb_utils/gsbutils.h"
+#include <gsbutils/gsbutils.h>
 using gsb_utils = gsbutils::SString;
 
 #include "tlg32.h"
