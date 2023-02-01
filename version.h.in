@@ -6,6 +6,4 @@
 #define Project_VERSION_PATCH "@PROJECT_VERSION_PATCH@"
 @DEBUG_STRING@
 
-@USEUTILS@
-
 #endif
