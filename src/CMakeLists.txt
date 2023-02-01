@@ -8,8 +8,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 configure_file(../version.h.in ../../src/version.h)
 
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/usr/local/lib")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -I. -I/usr/local/include -pthread -fPIC")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L${LIB_INSTALL_DIR}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -I. -I${INCLUDE_INSTALL_DIR} -pthread -fPIC")
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY lib)
 
@@ -27,4 +27,4 @@ endforeach(flag)
 add_library(${PROJECT_NAME} SHARED tlg32.cpp)
 
 target_link_libraries(${PROJECT_NAME} ${CMAKE_EXE_LINKER_FLAGS})
-target_include_directories(${PROJECT_NAME} PUBLIC /usr/local/include)
+target_include_directories(${PROJECT_NAME} PUBLIC ${INCLUDE_INSTALL_DIR})
