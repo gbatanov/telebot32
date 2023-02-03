@@ -20,8 +20,13 @@ include(FindPkgConfig)
 pkg_check_modules(PKGS REQUIRED ${DEPENDENTS})
 
 FOREACH(flag ${PKGS_CFLAGS})
-    SET(EXTRA_LIB_CFLAGS "${EXTRA_LIB_CFLAGS} ${flag}")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag}")
 ENDFOREACH(flag)
+
+FOREACH(flag ${PKGS_LDFLAGS})
+    SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${flag}")
+ENDFOREACH(flag)
+string(STRIP ${CMAKE_EXE_LINKER_FLAGS} CMAKE_EXE_LINKER_FLAGS)
 
 if(${MAIN_PROJECT})
     configure_file(../version.h.in ../../src/version.h)
@@ -33,5 +38,6 @@ else()
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/../../version.h.in ${CMAKE_CURRENT_SOURCE_DIR}/version.h)
     add_library(${PROJECT_NAME} STATIC tlg32.cpp)
     target_include_directories(${PROJECT_NAME} PUBLIC ./..)
+    target_link_libraries(${PROJECT_NAME} ${CMAKE_EXE_LINKER_FLAGS})
 endif()
 
