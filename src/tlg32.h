@@ -56,6 +56,7 @@ public:
 
     std::string get_token();
     bool run(handleFunc handle);
+    void stop();
     bool query_to_api(std::string method, std::string *response, Tlg32_core_mime mimes[], uint8_t mime_size);
     bool get_me();
     bool get_updates(std::vector<Message> *msgIn);
