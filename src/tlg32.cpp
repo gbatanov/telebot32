@@ -39,6 +39,10 @@ Tlg32::Tlg32(std::string botName) : botName_(botName)
 }
 Tlg32::~Tlg32()
 {
+}
+
+void Tlg32::stop()
+{
     flag.store(false);
     qcv.notify_one();
     if (pollThread_.joinable())
@@ -46,7 +50,6 @@ Tlg32::~Tlg32()
     if (sendThread_.joinable())
         sendThread_.join();
 }
-
 bool Tlg32::run(handleFunc handle)
 {
     handle_ = handle;
