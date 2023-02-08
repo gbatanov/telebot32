@@ -13,11 +13,7 @@
 
 #include "version.h"
 
-#ifdef OUTER_PROJECT
 #include "../../gsb_utils/gsbutils.h"
-#else
-#include <gsbutils/gsbutils.h>
-#endif
 using gsb_utils = gsbutils::SString;
 
 #include "tlg32.h"
