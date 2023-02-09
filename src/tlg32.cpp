@@ -257,10 +257,10 @@ bool Tlg32::send_message_real()
     {
         std::unique_lock<std::mutex> ul(qcvMtx_);
         qcv.wait(ul, [this]()
-                 { return (this->msgQueue_.size() > 0) || !flag.load(); });
-        if (this->msgQueue_.size() > 0)
+                 { return (msgQueue_.size() > 0) || !flag.load(); });
+        if (msgQueue_.size() > 0)
         {
-            Message msg = this->msgQueue_.front();
+            Message msg = msgQueue_.front();
 
             std::string content{};
             int index = 0;
@@ -275,7 +275,7 @@ bool Tlg32::send_message_real()
             bool res = query_to_api("sendMessage", &content, mimes, index);
             // Сообщение удаляем только в случае его удачной отправки
             if (res)
-                this->msgQueue_.pop();
+                msgQueue_.pop();
         }
         ul.unlock();
     }
@@ -376,12 +376,10 @@ bool Tlg32::parseUpdates(std::string content, std::vector<Message> *msgIn)
     n = content.find("{\"update_id");
     while (n != std::string::npos)
     {
-        //       DBGLOG("%lu \n", n);
         positions.push_back(n);
         n = content.find("{\"update_id", n + strlen("{\"update_id"));
     }
     int msgCount = positions.size();
-    //    DBGLOG("Messages count %d \n", msgCount);
     if (msgCount == 1)
     {
         return parseOneUpdate(content, msgIn);
@@ -431,8 +429,6 @@ bool Tlg32::parseOneUpdate(std::string content, std::vector<Message> *msgIn)
 
     content = gsb_utils::remove_after(content, "},\"chat");
 
-    //   DBGLOG("\n %s \n", para.c_str());
-    //    DBGLOG("\n %s \n", content.c_str());
     int countParams = 3; // мне нужны только три параметра из этого ответа
 
     while (flag.load() && countParams > 0)
