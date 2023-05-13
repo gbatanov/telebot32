@@ -118,28 +118,31 @@ bool Tlg32::query_to_api(std::string method, std::string *response, Tlg32_core_m
                 return false;
 
             res = curl_easy_perform(curl); // CURLE_OK
-            if (res == CURLE_OK && flag.load())
+            if (flag.load())
             {
-                long resp_code = 0;
-                curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &resp_code);
-                if (resp_code == 200L)
+                if (res == CURLE_OK)
                 {
-                    *response = readBuffer_;
-                    ret = true;
-                    goto finish;
+                    long resp_code = 0;
+                    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &resp_code);
+                    if (resp_code == 200L)
+                    {
+                        *response = readBuffer_;
+                        ret = true;
+                        goto finish;
+                    }
+                    else
+                    {
+                        ERRLOG("Код ответа: %ld \n", resp_code);
+                        ret = false;
+                        goto finish;
+                    }
                 }
                 else
                 {
-                    ERRLOG("Код ответа: %ld \n", resp_code);
+                    ERRLOG("curl not ok\n");
                     ret = false;
                     goto finish;
                 }
-            }
-            else
-            {
-                ERRLOG("curl not ok\n");
-                ret = false;
-                goto finish;
             }
             ret = true;
         }
@@ -344,6 +347,7 @@ bool Tlg32::parseMe(std::string content)
         {
             countParams--;
             para = gsb_utils::remove_before(para, ":");
+            gsbutils::dprintf(1, "parseMe id: %s \n", para.c_str());
             bot_.id = std::stoull(para.c_str());
         }
         else if (para.starts_with("\"first_name\""))
@@ -406,12 +410,16 @@ bool Tlg32::parseOneUpdate(std::string content, std::vector<Message> *msgIn)
     content = gsb_utils::remove_before(content, ",");         // оставшаяся часть строки ответа - message
 
     para = gsb_utils::remove_before(para, ":");
+    gsbutils::dprintf(1, "parseOneUpdate:: lastUpdateId: %s \n", para.c_str());
+
     uint64_t lastUpdateId = (uint64_t)std::stoull(para.c_str());
     if (lastUpdateId > lastUpdateId_)
         lastUpdateId_ = lastUpdateId;
 
     content = gsb_utils::remove_before(content, "\"message\":{\"message_id\":");
     para = gsb_utils::remove_after(content, ",");
+    gsbutils::dprintf(1, "parseOneUpdate:: msg.messageId: %s \n", para.c_str());
+
     msg.messageId = (uint64_t)std::stoull(para.c_str());
 
     content = gsb_utils::remove_before(content, "\"from\":{"); // начинается с from "id":836487770,"is_bot":false,"first_name":"Georgii","last_name":"Batanov","language_code":"ru"},"chat":{"id":836487770,"first_name":"Georgii","last_name":"Batanov","type":"private"},"date":1672082654,"text":"test9"}}
@@ -425,6 +433,8 @@ bool Tlg32::parseOneUpdate(std::string content, std::vector<Message> *msgIn)
     msg.text = txt;
 
     para = gsb_utils::remove_after(para, ",");
+    gsbutils::dprintf(1, "parseOneUpdate:: msg.date: %s \n", para.c_str());
+
     msg.date = (uint64_t)std::stoull(para.c_str());
 
     content = gsb_utils::remove_after(content, "},\"chat");
@@ -439,6 +449,8 @@ bool Tlg32::parseOneUpdate(std::string content, std::vector<Message> *msgIn)
         {
             countParams--;
             para = gsb_utils::remove_before(para, ":");
+            gsbutils::dprintf(1, "parseOneUpdate:: msg.from.id: %s \n", para.c_str());
+
             msg.from.id = std::stoull(para.c_str());
         }
         else if (para.starts_with("\"first_name\""))
