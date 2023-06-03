@@ -75,8 +75,7 @@ static int cmd_func()
         time_t start = time(NULL);
         time_t waitTime = 1;
 
-        while (Flag.load() && (time(NULL) < start + waitTime))
-        {
+
             fd_set readfds;
             FD_ZERO(&readfds);
             FD_SET(0, &readfds);
@@ -90,7 +89,7 @@ static int cmd_func()
                     break;
                 }
             }
-        }
+
 
         switch (c)
         {
