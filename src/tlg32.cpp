@@ -28,7 +28,7 @@ static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *use
     return size * nmemb;
 }
 // Имя бота необходимо для правильного выбора токена в системе с несколькими ботами
-Tlg32::Tlg32(std::string botName) : botName_(botName)
+Tlg32::Tlg32(std::string botName, std::shared_ptr<gsbutils::Channel<TlgMessage>> tlg_in, std::shared_ptr<gsbutils::Channel<TlgMessage>> tlg_out) : botName_(botName), tlg_in_(tlg_in), tlg_out_(tlg_out)
 {
     bot_.isBot = true;
     flag.store(true);
@@ -41,14 +41,15 @@ void Tlg32::stop()
 {
     flag.store(false);
     qcv.notify_one();
+    tlg_in_->stop();
+    tlg_out_->stop();
     if (pollThread_.joinable())
         pollThread_.join();
     if (sendThread_.joinable())
         sendThread_.join();
 }
-bool Tlg32::run(handleFunc handle)
+bool Tlg32::run()
 {
-    handle_ = handle;
     token_ = get_token();
     if (token_.empty())
         throw std::runtime_error("Token is empty\n");
@@ -181,7 +182,7 @@ bool Tlg32::get_me()
     return true;
 }
 
-bool Tlg32::get_updates(std::vector<Message> *msgIn)
+bool Tlg32::get_updates(std::vector<TlgMessage> *msgIn)
 {
     std::string content{};
     User from;
@@ -229,7 +230,7 @@ bool Tlg32::get_updates(std::vector<Message> *msgIn)
 }
 
 // Ставим сообщение в очередь
-bool Tlg32::send_message(Message msg)
+bool Tlg32::send_message(TlgMessage msg)
 {
     std::lock_guard<std::mutex> lg(queueMtx_);
     msgQueue_.push(msg);
@@ -245,42 +246,33 @@ bool Tlg32::send_message(std::string txt)
         return false;
     for (auto &vid : valid_ids_)
     {
-        Message msg;
+        TlgMessage msg;
         msg.chat.id = vid;
         msg.text = txt;
-        std::lock_guard<std::mutex> lg(queueMtx_);
-        msgQueue_.push(msg);
+        //       std::lock_guard<std::mutex> lg(queueMtx_);
+        //        msgQueue_.push(msg);
+        tlg_out_->write(msg);
     }
-    qcv.notify_one();
+    //    qcv.notify_one();
     return true;
 }
 bool Tlg32::send_message_real()
 {
     while (flag.load())
     {
-        std::unique_lock<std::mutex> ul(qcvMtx_);
-        qcv.wait(ul, [this]()
-                 { return (msgQueue_.size() > 0) || !flag.load(); });
-        if (msgQueue_.size() > 0)
-        {
-            Message msg = msgQueue_.front();
+        TlgMessage msg = tlg_out_->read();
 
-            std::string content{};
-            int index = 0;
-            Tlg32_core_mime mimes[2];
-            mimes[index].name = "chat_id";
-            snprintf(mimes[index].data, sizeof(mimes[index].data), "%lld", (long long int)msg.chat.id);
-            ++index;
-            mimes[index].name = "text";
-            snprintf(mimes[index].data, sizeof(mimes[index].data), "%s", msg.text.c_str());
-            ++index;
+        std::string content{};
+        int index = 0;
+        Tlg32_core_mime mimes[2];
+        mimes[index].name = "chat_id";
+        snprintf(mimes[index].data, sizeof(mimes[index].data), "%lld", (long long int)msg.chat.id);
+        ++index;
+        mimes[index].name = "text";
+        snprintf(mimes[index].data, sizeof(mimes[index].data), "%s", msg.text.c_str());
+        ++index;
 
-            bool res = query_to_api("sendMessage", &content, mimes, index);
-            // Сообщение удаляем только в случае его удачной отправки
-            if (res)
-                msgQueue_.pop();
-        }
-        ul.unlock();
+        query_to_api("sendMessage", &content, mimes, index);
     }
 
     return true;
@@ -314,12 +306,13 @@ void Tlg32::poll()
     {
         while (flag.load())
         {
-            std::vector<Message> msgIn{};
+            std::vector<TlgMessage> msgIn{};
 
             if (flag.load() && get_updates(&msgIn))
                 if (msgIn.size())
-                    for (Message msg : msgIn)
-                        handle_(msg);
+                    for (TlgMessage msg : msgIn)
+                        // handle_(msg);
+                        tlg_in_->write(msg);
             if (flag.load())
                 std::this_thread::sleep_for(std::chrono::seconds(5));
         }
@@ -365,7 +358,7 @@ bool Tlg32::parseMe(std::string content)
     return true;
 }
 // парсинг поля result в ответе getUpdates
-bool Tlg32::parseUpdates(std::string content, std::vector<Message> *msgIn)
+bool Tlg32::parseUpdates(std::string content, std::vector<TlgMessage> *msgIn)
 {
     if (!content.starts_with("{\"ok\":true,\"result\""))
         return false;
@@ -401,9 +394,9 @@ bool Tlg32::parseUpdates(std::string content, std::vector<Message> *msgIn)
     return false;
 }
 
-bool Tlg32::parseOneUpdate(std::string content, std::vector<Message> *msgIn)
+bool Tlg32::parseOneUpdate(std::string content, std::vector<TlgMessage> *msgIn)
 {
-    Message msg{};
+    TlgMessage msg{};
     //   DBGLOG("\n %s \n", content.c_str());
     // TODO: разобраться с  удаленными сообщениями
     // ChatMemberBanned - "status":"kicked" , приходит, если заблокировать бота
