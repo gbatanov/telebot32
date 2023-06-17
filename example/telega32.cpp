@@ -13,34 +13,55 @@
 #include <gsbutils/gsbutils.h>
 #include "../src/tlg32.h"
 
-
 std::atomic<bool> Flag{true};
-std::unique_ptr<Tlg32> tlg32;
+std::shared_ptr<Tlg32> tlg32;
 
 // forward declarations
 static int cmd_func();
-void handle(Message msg);
+void handle();
+
+std::shared_ptr<gsbutils::Channel<TlgMessage>> tlgIn, tlgOut; // каналы обмена с телеграм
+std::thread *tlgInThread;                                     // поток приема команд с телеграм
+int64_t MyId = 836487770;
 
 int main(int argc, char *argv[])
 {
-    openlog("tlg32", LOG_PID, LOG_LOCAL7); //(local7.log Linux, system.log Mac OS)
+    gsbutils::init(0, (const char *)"tlg");
+    gsbutils::set_debug_level(4);
 
     INFOLOG("Welcome to Telega32\n");
-    tlg32 = std::make_unique<Tlg32>(BOT_NAME);
-    if (!tlg32->run(&handle))
+
+    // канал приема команд из телеграм
+    tlgIn = std::make_shared<gsbutils::Channel<TlgMessage>>(2);
+    // канал отправки сообщений в телеграм
+    tlgOut = std::make_shared<gsbutils::Channel<TlgMessage>>(2);
+    tlg32 = std::make_shared<Tlg32>(BOT_NAME, tlgIn, tlgOut);
+    tlg32->add_id(MyId);
+    tlgInThread = new std::thread(handle);
+
+    if (!tlg32->run())
         exit(1);
     cmd_func();
+    INFOLOG("Stop Telega32\n");
     Flag.store(false);
+    tlg32->stop();
+    tlgIn->stop();
+    tlgOut->stop();
+    if (tlgInThread->joinable())
+        tlgInThread->join();
+
+    gsbutils::stop();
     return 0;
 }
 
 // Здесь реализуется вся логика обработки принятых сообщений
 // Указатель на функцию передается в класс Tlg32
-void handle(Message msg)
+void handle()
 {
-    if (Flag.load() && !msg.text.empty())
+    while (Flag.load())
     {
-        Message answer{};
+        TlgMessage msg = tlgIn->read();
+        TlgMessage answer{};
         answer.chat.id = msg.from.id;
 
         DBGLOG("%s: %s \n", msg.from.firstName.c_str(), msg.text.c_str());
@@ -50,7 +71,7 @@ void handle(Message msg)
         else
             answer.text = "Я еще в разработке и не понимаю вас.";
 
-        bool ret = tlg32->send_message(answer);
+        bool ret = tlg32->send_message(answer.text);
 
         if (!ret)
             ERRLOG("Failed to send message \n");
@@ -72,24 +93,18 @@ static int cmd_func()
         tv.tv_sec = (long)1;
         tv.tv_usec = (long)0;
 
-        time_t start = time(NULL);
-        time_t waitTime = 1;
+        fd_set readfds;
+        FD_ZERO(&readfds);
+        FD_SET(0, &readfds);
 
-
-            fd_set readfds;
-            FD_ZERO(&readfds);
-            FD_SET(0, &readfds);
-
-            int count = select(nfds, &readfds, NULL, NULL, (struct timeval *)&tv);
-            if (count > 0)
+        int count = select(nfds, &readfds, NULL, NULL, (struct timeval *)&tv);
+        if (count > 0)
+        {
+            if (FD_ISSET(0, &readfds))
             {
-                if (FD_ISSET(0, &readfds))
-                {
-                    c = getchar();
-                    break;
-                }
+                c = getchar();
             }
-
+        }
 
         switch (c)
         {
@@ -100,10 +115,10 @@ static int cmd_func()
 
         case '1':
         {
-            Message msg;
-            msg.chat.id = 836487770;
-            msg.text = "Проверка вшивости\n";
-            if (tlg32->send_message(msg))
+            TlgMessage msg;
+            msg.chat.id = MyId;
+            msg.text = "Проверка работы\n";
+            if (tlg32->send_message(msg.text))
                 DBGLOG("Message sent to queue\n");
         }
         break;
@@ -111,7 +126,7 @@ static int cmd_func()
         {
         }
         break;
-        }
+        } // switch
         c = '\0';
     }
 

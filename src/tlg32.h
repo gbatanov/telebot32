@@ -3,7 +3,6 @@
 
 #include <queue>
 #include <condition_variable>
-#include "../../gsb_utils/gsbutils.h"
 
 typedef struct Tlg32_core_mime_
 {
@@ -59,7 +58,6 @@ public:
     bool query_to_api(std::string method, std::string *response, Tlg32_core_mime mimes[], uint8_t mime_size);
     bool get_me();
     bool get_updates(std::vector<TlgMessage> *msgIn);
-    bool send_message(TlgMessage msg);
     bool send_message(std::string txt);
     uint64_t bot_id() { return bot_.id; }
     std::string bot_name() { return bot_.lastName; }

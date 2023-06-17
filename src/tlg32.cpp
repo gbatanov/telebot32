@@ -13,8 +13,13 @@
 
 #include "version.h"
 
+#ifndef UNUSEUTILS
 #include "../../gsb_utils/gsbutils.h"
+#else
+#include <gsbutils/gsbutils.h>
+#endif
 using gsb_utils = gsbutils::SString;
+
 
 #include "tlg32.h"
 
@@ -60,6 +65,7 @@ bool Tlg32::run()
         flag.store(false);
         return false;
     }
+
     DBGLOG("Bot Id: %llu, Bot User Name: %s\n", (unsigned long long)bot_id(), bot_name().c_str());
 
     pollThread_ = std::thread(&Tlg32::poll, this);
@@ -84,8 +90,6 @@ bool Tlg32::query_to_api(std::string method, std::string *response, Tlg32_core_m
     try
     {
         apiUrl = apiUrl + "/bot" + token_ + "/" + method;
-
-        //        INFOLOG("%s \n", apiUrl.c_str());
 
         curl_global_init(CURL_GLOBAL_DEFAULT);
         curl = curl_easy_init();
@@ -229,14 +233,6 @@ bool Tlg32::get_updates(std::vector<TlgMessage> *msgIn)
     return true;
 }
 
-// Ставим сообщение в очередь
-bool Tlg32::send_message(TlgMessage msg)
-{
-    std::lock_guard<std::mutex> lg(queueMtx_);
-    msgQueue_.push(msg);
-    qcv.notify_one();
-    return true;
-}
 // Сообщения из модулей программы, отправляются по списку валидных ID
 bool Tlg32::send_message(std::string txt)
 {
@@ -249,11 +245,8 @@ bool Tlg32::send_message(std::string txt)
         TlgMessage msg;
         msg.chat.id = vid;
         msg.text = txt;
-        //       std::lock_guard<std::mutex> lg(queueMtx_);
-        //        msgQueue_.push(msg);
         tlg_out_->write(msg);
     }
-    //    qcv.notify_one();
     return true;
 }
 bool Tlg32::send_message_real()
@@ -311,7 +304,6 @@ void Tlg32::poll()
             if (flag.load() && get_updates(&msgIn))
                 if (msgIn.size())
                     for (TlgMessage msg : msgIn)
-                        // handle_(msg);
                         tlg_in_->write(msg);
             if (flag.load())
                 std::this_thread::sleep_for(std::chrono::seconds(5));
