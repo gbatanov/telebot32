@@ -20,7 +20,6 @@
 #endif
 using gsb_utils = gsbutils::SString;
 
-
 #include "tlg32.h"
 
 #define BOT_API_URL "https://api.telegram.org"
@@ -232,7 +231,15 @@ bool Tlg32::get_updates(std::vector<TlgMessage> *msgIn)
     }
     return true;
 }
-
+bool Tlg32::send_message(TlgMessage msg)
+{
+    if (msg.text.empty())
+        return false;
+    if (msg.text.size() > 2048)
+        return false;
+    tlg_out_->write(msg);
+    return true;
+}
 // Сообщения из модулей программы, отправляются по списку валидных ID
 bool Tlg32::send_message(std::string txt)
 {
