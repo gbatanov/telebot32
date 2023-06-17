@@ -4,6 +4,12 @@
 #include <queue>
 #include <condition_variable>
 
+#ifndef UNUSEUTILS
+#include "../../gsb_utils/gsbutils.h"
+#else
+#include <gsbutils/gsbutils.h>
+#endif
+
 typedef struct Tlg32_core_mime_
 {
     const char *name;
@@ -49,7 +55,7 @@ typedef struct TlgMessage_
 class Tlg32
 {
 public:
-    Tlg32(std::string botName,  std::shared_ptr<gsbutils::Channel<TlgMessage>> tlg_in,std::shared_ptr<gsbutils::Channel<TlgMessage>> tlg_out);
+    Tlg32(std::string botName, std::shared_ptr<gsbutils::Channel<TlgMessage>> tlg_in, std::shared_ptr<gsbutils::Channel<TlgMessage>> tlg_out);
     ~Tlg32();
 
     std::string get_token();
@@ -58,6 +64,7 @@ public:
     bool query_to_api(std::string method, std::string *response, Tlg32_core_mime mimes[], uint8_t mime_size);
     bool get_me();
     bool get_updates(std::vector<TlgMessage> *msgIn);
+    bool send_message(TlgMessage msg);
     bool send_message(std::string txt);
     uint64_t bot_id() { return bot_.id; }
     std::string bot_name() { return bot_.lastName; }
@@ -73,7 +80,7 @@ public:
 private:
     std::string botName_{};
     std::shared_ptr<gsbutils::Channel<TlgMessage>> tlg_in_, tlg_out_;
-   std::string token_{};
+    std::string token_{};
     std::string readBuffer_{};
     bool send_message_real();
     void poll();
