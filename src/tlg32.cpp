@@ -13,7 +13,11 @@
 
 #include "version.h"
 
+#ifndef UNUSEUTILS
+#include "../../gsb_utils/gsbutils.h"
+#else
 #include <gsbutils/gsbutils.h>
+#endif
 using gsb_utils = gsbutils::SString;
 
 #include "tlg32.h"
@@ -28,24 +32,28 @@ static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *use
     return size * nmemb;
 }
 // Имя бота необходимо для правильного выбора токена в системе с несколькими ботами
-Tlg32::Tlg32(std::string botName) : botName_(botName)
+Tlg32::Tlg32(std::string botName, std::shared_ptr<gsbutils::Channel<TlgMessage>> tlg_in, std::shared_ptr<gsbutils::Channel<TlgMessage>> tlg_out) : botName_(botName), tlg_in_(tlg_in), tlg_out_(tlg_out)
 {
     bot_.isBot = true;
     flag.store(true);
 }
 Tlg32::~Tlg32()
 {
+}
+
+void Tlg32::stop()
+{
     flag.store(false);
     qcv.notify_one();
+    tlg_in_->stop();
+    tlg_out_->stop();
     if (pollThread_.joinable())
         pollThread_.join();
     if (sendThread_.joinable())
         sendThread_.join();
 }
-
-bool Tlg32::run(handleFunc handle)
+bool Tlg32::run()
 {
-    handle_ = handle;
     token_ = get_token();
     if (token_.empty())
         throw std::runtime_error("Token is empty\n");
@@ -56,6 +64,7 @@ bool Tlg32::run(handleFunc handle)
         flag.store(false);
         return false;
     }
+
     DBGLOG("Bot Id: %llu, Bot User Name: %s\n", (unsigned long long)bot_id(), bot_name().c_str());
 
     pollThread_ = std::thread(&Tlg32::poll, this);
@@ -80,8 +89,6 @@ bool Tlg32::query_to_api(std::string method, std::string *response, Tlg32_core_m
     try
     {
         apiUrl = apiUrl + "/bot" + token_ + "/" + method;
-
-        //        INFOLOG("%s \n", apiUrl.c_str());
 
         curl_global_init(CURL_GLOBAL_DEFAULT);
         curl = curl_easy_init();
@@ -115,28 +122,31 @@ bool Tlg32::query_to_api(std::string method, std::string *response, Tlg32_core_m
                 return false;
 
             res = curl_easy_perform(curl); // CURLE_OK
-            if (res == CURLE_OK && flag.load())
+            if (flag.load())
             {
-                long resp_code = 0;
-                curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &resp_code);
-                if (resp_code == 200L)
+                if (res == CURLE_OK)
                 {
-                    *response = readBuffer_;
-                    ret = true;
-                    goto finish;
+                    long resp_code = 0;
+                    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &resp_code);
+                    if (resp_code == 200L)
+                    {
+                        *response = readBuffer_;
+                        ret = true;
+                        goto finish;
+                    }
+                    else
+                    {
+                        ERRLOG("Код ответа: %ld \n", resp_code);
+                        ret = false;
+                        goto finish;
+                    }
                 }
                 else
                 {
-                    ERRLOG("Код ответа: %ld \n", resp_code);
+                    ERRLOG("curl not ok\n");
                     ret = false;
                     goto finish;
                 }
-            }
-            else
-            {
-                ERRLOG("curl not ok\n");
-                ret = false;
-                goto finish;
             }
             ret = true;
         }
@@ -175,7 +185,7 @@ bool Tlg32::get_me()
     return true;
 }
 
-bool Tlg32::get_updates(std::vector<Message> *msgIn)
+bool Tlg32::get_updates(std::vector<TlgMessage> *msgIn)
 {
     std::string content{};
     User from;
@@ -221,13 +231,13 @@ bool Tlg32::get_updates(std::vector<Message> *msgIn)
     }
     return true;
 }
-
-// Ставим сообщение в очередь
-bool Tlg32::send_message(Message msg)
+bool Tlg32::send_message(TlgMessage msg)
 {
-    std::lock_guard<std::mutex> lg(queueMtx_);
-    msgQueue_.push(msg);
-    qcv.notify_one();
+    if (msg.text.empty())
+        return false;
+    if (msg.text.size() > 2048)
+        return false;
+    tlg_out_->write(msg);
     return true;
 }
 // Сообщения из модулей программы, отправляются по списку валидных ID
@@ -239,42 +249,30 @@ bool Tlg32::send_message(std::string txt)
         return false;
     for (auto &vid : valid_ids_)
     {
-        Message msg;
+        TlgMessage msg;
         msg.chat.id = vid;
         msg.text = txt;
-        std::lock_guard<std::mutex> lg(queueMtx_);
-        msgQueue_.push(msg);
+        tlg_out_->write(msg);
     }
-    qcv.notify_one();
     return true;
 }
 bool Tlg32::send_message_real()
 {
     while (flag.load())
     {
-        std::unique_lock<std::mutex> ul(qcvMtx_);
-        qcv.wait(ul, [this]()
-                 { return (this->msgQueue_.size() > 0) || !flag.load(); });
-        if (this->msgQueue_.size() > 0)
-        {
-            Message msg = this->msgQueue_.front();
+        TlgMessage msg = tlg_out_->read();
 
-            std::string content{};
-            int index = 0;
-            Tlg32_core_mime mimes[2];
-            mimes[index].name = "chat_id";
-            snprintf(mimes[index].data, sizeof(mimes[index].data), "%lld", (long long int)msg.chat.id);
-            ++index;
-            mimes[index].name = "text";
-            snprintf(mimes[index].data, sizeof(mimes[index].data), "%s", msg.text.c_str());
-            ++index;
+        std::string content{};
+        int index = 0;
+        Tlg32_core_mime mimes[2];
+        mimes[index].name = "chat_id";
+        snprintf(mimes[index].data, sizeof(mimes[index].data), "%lld", (long long int)msg.chat.id);
+        ++index;
+        mimes[index].name = "text";
+        snprintf(mimes[index].data, sizeof(mimes[index].data), "%s", msg.text.c_str());
+        ++index;
 
-            bool res = query_to_api("sendMessage", &content, mimes, index);
-            // Сообщение удаляем только в случае его удачной отправки
-            if (res)
-                this->msgQueue_.pop();
-        }
-        ul.unlock();
+        query_to_api("sendMessage", &content, mimes, index);
     }
 
     return true;
@@ -315,12 +313,12 @@ void Tlg32::poll()
     {
         while (flag.load())
         {
-            std::vector<Message> msgIn{};
+            std::vector<TlgMessage> msgIn{};
 
             if (flag.load() && get_updates(&msgIn))
                 if (msgIn.size())
-                    for (Message msg : msgIn)
-                        handle_(msg);
+                    for (TlgMessage msg : msgIn)
+                        tlg_in_->write(msg);
             if (flag.load())
                 std::this_thread::sleep_for(std::chrono::seconds(5));
         }
@@ -366,7 +364,7 @@ bool Tlg32::parseMe(std::string content)
     return true;
 }
 // парсинг поля result в ответе getUpdates
-bool Tlg32::parseUpdates(std::string content, std::vector<Message> *msgIn)
+bool Tlg32::parseUpdates(std::string content, std::vector<TlgMessage> *msgIn)
 {
     if (!content.starts_with("{\"ok\":true,\"result\""))
         return false;
@@ -380,12 +378,10 @@ bool Tlg32::parseUpdates(std::string content, std::vector<Message> *msgIn)
     n = content.find("{\"update_id");
     while (n != std::string::npos)
     {
-        //       DBGLOG("%lu \n", n);
         positions.push_back(n);
         n = content.find("{\"update_id", n + strlen("{\"update_id"));
     }
     int msgCount = positions.size();
-    //    DBGLOG("Messages count %d \n", msgCount);
     if (msgCount == 1)
     {
         return parseOneUpdate(content, msgIn);
@@ -404,14 +400,19 @@ bool Tlg32::parseUpdates(std::string content, std::vector<Message> *msgIn)
     return false;
 }
 
-bool Tlg32::parseOneUpdate(std::string content, std::vector<Message> *msgIn)
+bool Tlg32::parseOneUpdate(std::string content, std::vector<TlgMessage> *msgIn)
 {
-    Message msg{};
+    TlgMessage msg{};
     //   DBGLOG("\n %s \n", content.c_str());
+    // TODO: разобраться с  удаленными сообщениями
+    // ChatMemberBanned - "status":"kicked" , приходит, если заблокировать бота
+    if (content.find("\"status\":\"kicked\"") != content.npos) // типа удаленного сообщения, пропускаем
+        return true;
     std::string para = gsb_utils::remove_after(content, ","); // "update_id":ID
     content = gsb_utils::remove_before(content, ",");         // оставшаяся часть строки ответа - message
 
     para = gsb_utils::remove_before(para, ":");
+
     uint64_t lastUpdateId = (uint64_t)std::stoull(para.c_str());
     if (lastUpdateId > lastUpdateId_)
         lastUpdateId_ = lastUpdateId;
@@ -435,8 +436,6 @@ bool Tlg32::parseOneUpdate(std::string content, std::vector<Message> *msgIn)
 
     content = gsb_utils::remove_after(content, "},\"chat");
 
-    //   DBGLOG("\n %s \n", para.c_str());
-    //    DBGLOG("\n %s \n", content.c_str());
     int countParams = 3; // мне нужны только три параметра из этого ответа
 
     while (flag.load() && countParams > 0)

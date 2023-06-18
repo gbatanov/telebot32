@@ -1,8 +1,15 @@
-cmake_minimum_required(VERSION 3.16)
-project(telebot32 LANGUAGES CXX VERSION 0.8.49)
+cmake_minimum_required(VERSION 3.20)
+project(telebot32 LANGUAGES CXX VERSION 0.11.56)
 
 message(STATUS "${PROJECT_NAME}: ${PROJECT_VERSION}")
 message(STATUS ${CMAKE_BUILD_TYPE})
+
+# check main project or not
+set(MAIN_PROJECT OFF)
+set(PREFIX "")
+if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+    set(MAIN_PROJECT ON)
+endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
