@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(telebot32 LANGUAGES CXX VERSION 0.11.55)
+project(telebot32 LANGUAGES CXX VERSION 0.11.57)
 
 message(STATUS "${PROJECT_NAME}: ${PROJECT_VERSION}")
 message(STATUS ${CMAKE_BUILD_TYPE})
@@ -20,42 +20,43 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(DEBUG_STRING "#define DEBUG 1")
 endif()
 
+set(PREFIX /usr/local)
+if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
+   set(PREFIX /opt/local)
+endif()
+
+set(VERSION ${PROJECT_VERSION})
+set(PROJECT_DESCRIPTION "Библиотека телеграм-бота")
+
+set(INCLUDE_INSTALL_DIR ${PREFIX}/include )
+set(LIB_INSTALL_DIR ${PREFIX}/lib )
+set(SYSCONFIG_INSTALL_DIR "" )
+
 add_subdirectory(src)
 
-if(${MAIN_PROJECT})
-  set(PREFIX /usr/local)
-  set(VERSION ${PROJECT_VERSION})
-  set(PROJECT_DESCRIPTION "Библиотека телеграм-бота")
-
-  set(INCLUDE_INSTALL_DIR ${PREFIX}/include/ )
-  set(LIB_INSTALL_DIR ${PREFIX}/lib/  )
-  set(SYSCONFIG_INSTALL_DIR "" )
-
-  include(CMakePackageConfigHelpers)
-  configure_package_config_file(${PROJECT_NAME}Config.cmake.in
+include(CMakePackageConfigHelpers)
+configure_package_config_file(${PROJECT_NAME}Config.cmake.in
       ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
       INSTALL_DESTINATION ${LIB_INSTALL_DIR}/cmake/${PROJECT_NAME}
       PATH_VARS INCLUDE_INSTALL_DIR 
       SYSCONFIG_INSTALL_DIR
       )
-  write_basic_package_version_file(
+write_basic_package_version_file(
       ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
       VERSION ${VERSION}
       COMPATIBILITY SameMajorVersion )  
 
 
-  if (TEST)
+if (TEST)
     add_subdirectory(example)
-  endif()
+endif()
 
-  install(TARGETS ${PROJECT_NAME} DESTINATION /usr/local/lib)
-  install(FILES src/tlg32.h DESTINATION /usr/local/include/${PROJECT_NAME})
+install(TARGETS ${PROJECT_NAME} DESTINATION ${LIB_INSTALL_DIR})
+install(FILES src/tlg32.h DESTINATION ${INCLUDE_INSTALL_DIR}/${PROJECT_NAME})
 
-  install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
       ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
       DESTINATION ${LIB_INSTALL_DIR}/cmake/${PROJECT_NAME}) 
 
-  configure_file(${PROJECT_NAME}.pc.in ${PROJECT_NAME}.pc @ONLY)
-  install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc DESTINATION ${PREFIX}/lib/pkgconfig)
-
-endif()
+configure_file(${PROJECT_NAME}.pc.in ${PROJECT_NAME}.pc @ONLY)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc DESTINATION ${LIB_INSTALL_DIR}/pkgconfig)

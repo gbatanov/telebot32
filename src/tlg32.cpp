@@ -279,8 +279,15 @@ bool Tlg32::send_message_real()
 }
 std::string Tlg32::get_token()
 {
+#ifdef __MACH__
+    std::string prefix = "/opt/local";
+#else
+    std::string prefix = "/usr/local";
+#endif
+
     char c_token[1024]{0};
-    snprintf(c_token, 1024, "/usr/local/etc/telebot32/.token%s/.token", botName_.c_str());
+
+    snprintf(c_token, 1024, "%s/etc/telebot32/.token%s/.token", prefix.c_str(), botName_.c_str());
     FILE *fp = fopen(c_token, "r");
     if (fp == NULL)
     {
